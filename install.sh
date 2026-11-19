@@ -19,14 +19,14 @@ shift $((OPTIND - 1))
 VERSION="${1:-latest}"
 
 case "$(uname -s)" in
-    Linux)  OS="Linux" ;;
-    Darwin) OS="Darwin" ;;
-    MINGW*|MSYS*|CYGWIN*) OS="Windows" ;;
+    Linux)  OS="linux" ;;
+    Darwin) OS="darwin" ;;
+    MINGW*|MSYS*|CYGWIN*) OS="windows" ;;
     *) echo "unsupported OS: $(uname -s)" >&2; exit 1 ;;
 esac
 
 case "$(uname -m)" in
-    x86_64|amd64)   ARCH="x86_64" ;;
+    x86_64|amd64)   ARCH="amd64" ;;
     arm64|aarch64)  ARCH="arm64" ;;
     *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
 esac
@@ -47,7 +47,7 @@ if [ -z "${INSTALL_DIR:-}" ]; then
 fi
 mkdir -p "$INSTALL_DIR"
 
-EXT="tar.gz"; [ "$OS" = "Windows" ] && EXT="zip"
+EXT="tar.gz"; [ "$OS" = "windows" ] && EXT="zip"
 ASSET="${BIN}_${OS}_${ARCH}.${EXT}"
 BASE="https://github.com/${REPO}/releases/download/${VERSION}"
 
@@ -72,7 +72,7 @@ else
     tar -xzf "$ASSET"
 fi
 
-BINFILE="$BIN"; [ "$OS" = "Windows" ] && BINFILE="${BIN}.exe"
+BINFILE="$BIN"; [ "$OS" = "windows" ] && BINFILE="${BIN}.exe"
 chmod +x "$BINFILE" 2>/dev/null || true
 
 if [ -w "$INSTALL_DIR" ]; then
