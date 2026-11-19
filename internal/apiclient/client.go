@@ -174,6 +174,7 @@ func firstLine(s, fallback string) string {
 
 func (c *Client) Get(path string, out any) error        { return c.Do("GET", path, nil, out) }
 func (c *Client) Post(path string, body, out any) error { return c.Do("POST", path, body, out) }
+func (c *Client) Put(path string, body, out any) error  { return c.Do("PUT", path, body, out) }
 func (c *Client) Delete(path string) error              { return c.Do("DELETE", path, nil, nil) }
 
 // Login authenticates with username/password and returns a session-cookie client.

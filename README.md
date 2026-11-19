@@ -87,15 +87,35 @@ For CI, set `SEMAPHORE_CLI_URL` and `SEMAPHORE_CLI_TOKEN` in the environment.
 | `auth login\|status\|token\|logout` | Manage authentication |
 | `context list\|use\|set\|delete` | Manage named server contexts |
 | `info` | Show server version and info |
-| `project list\|get` | List and inspect projects |
-| `template list\|get\|run` | List, inspect, and run templates |
+| `project list\|get\|create\|update\|delete` | Manage projects |
+| `template list\|get\|run\|create\|update\|delete` | Manage and run templates |
 | `task list\|get\|run\|logs\|wait\|stop\|confirm\|reject\|rerun\|delete` | Manage tasks |
-| `inventory\|environment\|schedule\|key\|repository\|view\|member\|user\|runner list\|get` | List and inspect resources |
+| `inventory\|environment\|schedule\|key\|repository\|view\|member\|user\|runner list\|get\|create\|update\|delete` | Manage resources |
 | `mcp` | Serve the API as MCP tools over stdio |
 | `skill install` | Install the embedded agent skill |
 
-Most `get` and `run` commands accept an id or a name. Project-scoped commands
-take `-p/--project` (id or name) or `SEMAPHORE_CLI_PROJECT`.
+Most `get`, `run`, `update` and `delete` commands accept an id or a name.
+Project-scoped commands take `-p/--project` (id or name) or
+`SEMAPHORE_CLI_PROJECT`.
+
+### Create and update
+
+`project` and `template` take typed flags plus a `--data`/`--file` JSON
+body; other resources take the body only:
+
+```bash
+semaphore-cli project create --name prod
+semaphore-cli template create -p prod --name deploy --app ansible \
+    --playbook deploy.yml --inventory prod --repository app --environment prod
+semaphore-cli inventory create -p prod --data '{"name":"prod","type":"static","inventory":"web1"}'
+semaphore-cli template update deploy -p prod --description "nightly" --git-branch dev
+```
+
+Update merges: it fetches the current object, applies `--data` and the
+flags you pass, and sends the result — unchanged fields keep their values.
+`template` resolves `--inventory`, `--repository`, `--environment`,
+`--view` and `--build-template` names to ids. `delete` prompts unless
+`-y`.
 
 ### Task run flags
 

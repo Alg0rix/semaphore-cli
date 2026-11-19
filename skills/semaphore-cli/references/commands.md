@@ -29,8 +29,9 @@ Global flags on every command: `--url`, `--token`, `--context`,
 | `task reject <id>` | Reject a task paused for confirmation (`-p`) |
 | `task rerun <id>` | Re-run a finished task; `-f` follows (`-p`) |
 | `task delete <id>` | Delete task + output; prompts unless `-y` (`-p`) |
-| `inventory\|environment\|schedule\|key\|repository\|view\|member list\|get` | Project resources (`-p`) |
-| `user\|runner list\|get` | Global resources (no `-p`) |
+| `inventory\|environment\|schedule\|key\|repository\|view\|member list\|get\|create\|update\|delete` | Project resources (`-p`) |
+| `user\|runner list\|get\|create\|update\|delete` | Global resources (runner `create` accepts `-p` for project runners) |
+| `project create\|update\|delete`, `template create\|update\|delete` | Typed-flag CRUD plus `--data`/`--file` JSON |
 | `mcp` | MCP server over stdio — see mcp.md |
 | `skill install [--path DIR]` | Install this skill into agent skill dirs |
 
@@ -51,6 +52,21 @@ Global flags on every command: `--url`, `--token`, `--context`,
 --diff           ansible --diff
 --debug-task     verbose ansible output
 ```
+
+## Create/update semantics
+
+- Bodies come from `--data '<json>'` or `--file path` (`-` reads stdin).
+- `update` fetches the item, overlays the body and the passed flags, and
+  PUTs the result — pass only the fields to change.
+- `project`/`template` also take typed flags; `template` resolves
+  `--inventory/--repository/--environment/--view/--build-template` names
+  to ids automatically.
+- `project_id` is injected into project-scoped bodies; `repository create`
+  requires `ssh_key_id` or the server 404s it; `member` bodies take
+  `user_id` + `role` or `roles` (never both — the CLI drops the stale one
+  on update).
+- `delete` resolves id-or-name, prints the target, and needs `-y` without
+  a TTY.
 
 ## Output contract
 

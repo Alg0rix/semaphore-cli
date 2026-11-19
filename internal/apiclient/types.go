@@ -32,6 +32,15 @@ type Template struct {
 	EnvironmentID int    `json:"environment_id" yaml:"environment_id"`
 	Type          string `json:"type" yaml:"type"`
 	LastTask      *Task  `json:"last_task" yaml:"last_task"`
+	ViewID        int    `json:"view_id" yaml:"view_id"`
+	WorkingDir    string `json:"working_directory" yaml:"working_directory"`
+	Arguments     string `json:"arguments" yaml:"arguments"`
+	Limit         string `json:"limit" yaml:"limit"`
+	GitBranch     string `json:"git_branch" yaml:"git_branch"`
+	AllowOverride bool   `json:"allow_override_args_in_task" yaml:"allow_override_args_in_task"`
+	Autorun       bool   `json:"autorun" yaml:"autorun"`
+	StartVersion  string `json:"start_version" yaml:"start_version"`
+	BuildTemplate int    `json:"build_template_id" yaml:"build_template_id"`
 }
 
 type Task struct {
@@ -111,6 +120,8 @@ type Repository struct {
 	Name      string `json:"name" yaml:"name"`
 	GitURL    string `json:"git_url" yaml:"git_url"`
 	GitBranch string `json:"git_branch" yaml:"git_branch"`
+	SshKeyID  int    `json:"ssh_key_id" yaml:"ssh_key_id"`
+	Monorepo  bool   `json:"monorepo" yaml:"monorepo"`
 }
 
 type View struct {

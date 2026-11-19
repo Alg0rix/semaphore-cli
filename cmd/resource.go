@@ -20,14 +20,27 @@ type resource struct {
 	path    string
 	columns []output.Column
 	newList func() any // pointer to slice for json.Unmarshal
+	newItem func() any // pointer to one item for json.Unmarshal
 	index   func(v any, id string) (any, error)
+	// nameKey is the JSON field matched for name lookups ("name", "title"…).
+	nameKey string
+	// fixup adjusts a merged request body before it is sent, for
+	// resources whose write schema conflicts with their read schema.
+	fixup func(body, over map[string]any)
+	// optionalProject allows -p on a global resource for writes that
+	// have a project-scoped variant (runners).
+	optionalProject bool
+	// createPath overrides the POST path when set.
+	createPath func(pid int) string
 }
 
 func res[T any](kind, short string, project bool, path string, columns []output.Column,
 	name func(T) string, id func(T) int) resource {
 	return resource{
 		kind: kind, short: short, project: project, path: path, columns: columns,
+		nameKey: "name",
 		newList: func() any { return &[]T{} },
+		newItem: func() any { return new(T) },
 		index: func(v any, want string) (any, error) {
 			items := *(v.(*[]T))
 			if n, err := strconv.Atoi(want); err == nil {
@@ -127,6 +140,7 @@ func (r resource) newCmd() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(list, get)
+	r.addCrud(cmd)
 	return cmd
 }
 
@@ -164,31 +178,73 @@ func resourceCommands() []*cobra.Command {
 			col[apiclient.Repository]("BRANCH", func(r apiclient.Repository) string { return r.GitBranch }),
 		}, func(r apiclient.Repository) string { return r.Name }, func(r apiclient.Repository) int { return r.ID }).newCmd(),
 
-		res[apiclient.View]("view", "Views", true, "/views", []output.Column{
-			col[apiclient.View]("ID", func(v apiclient.View) int { return v.ID }),
-			col[apiclient.View]("TITLE", func(v apiclient.View) string { return v.Title }),
-			col[apiclient.View]("POSITION", func(v apiclient.View) int { return v.Position }),
-		}, func(v apiclient.View) string { return v.Title }, func(v apiclient.View) int { return v.ID }).newCmd(),
+		viewCmd(),
 
-		res[apiclient.User]("user", "Users (admin only)", false, "/users", []output.Column{
-			col[apiclient.User]("ID", func(u apiclient.User) int { return u.ID }),
-			col[apiclient.User]("USERNAME", func(u apiclient.User) string { return u.Username }),
-			col[apiclient.User]("NAME", func(u apiclient.User) string { return u.Name }),
-			col[apiclient.User]("EMAIL", func(u apiclient.User) string { return u.Email }),
-			col[apiclient.User]("ADMIN", func(u apiclient.User) bool { return u.Admin }),
-		}, func(u apiclient.User) string { return u.Username }, func(u apiclient.User) int { return u.ID }).newCmd(),
+		userCmd(),
 
-		res[apiclient.Runner]("runner", "Runners (admin only)", false, "/runners", []output.Column{
-			col[apiclient.Runner]("ID", func(r apiclient.Runner) int { return r.ID }),
-			col[apiclient.Runner]("NAME", func(r apiclient.Runner) string { return r.Name }),
-			col[apiclient.Runner]("ACTIVE", func(r apiclient.Runner) bool { return r.Active }),
-		}, func(r apiclient.Runner) string { return r.Name }, func(r apiclient.Runner) int { return r.ID }).newCmd(),
+		runnerCmd(),
 
-		res[apiclient.Member]("member", "Project members", true, "/users", []output.Column{
-			col[apiclient.Member]("ID", func(m apiclient.Member) int { return m.ID }),
-			col[apiclient.Member]("USERNAME", func(m apiclient.Member) string { return m.Username }),
-			col[apiclient.Member]("NAME", func(m apiclient.Member) string { return m.Name }),
-			col[apiclient.Member]("ROLE", func(m apiclient.Member) string { return m.Role }),
-		}, func(m apiclient.Member) string { return m.Username }, func(m apiclient.Member) int { return m.ID }).newCmd(),
+		memberCmd(),
 	}
+}
+
+// runnerCmd is the runner resource. Runners are global objects, but
+// `runner create -p` registers a project runner through its project path.
+func runnerCmd() *cobra.Command {
+	r := res[apiclient.Runner]("runner", "Runners (admin only)", false, "/runners", []output.Column{
+		col[apiclient.Runner]("ID", func(r apiclient.Runner) int { return r.ID }),
+		col[apiclient.Runner]("NAME", func(r apiclient.Runner) string { return r.Name }),
+		col[apiclient.Runner]("ACTIVE", func(r apiclient.Runner) bool { return r.Active }),
+	}, func(r apiclient.Runner) string { return r.Name }, func(r apiclient.Runner) int { return r.ID })
+	r.optionalProject = true
+	r.createPath = func(pid int) string {
+		if pid != 0 {
+			return fmt.Sprintf("/project/%d/runners", pid)
+		}
+		return "/runners"
+	}
+	return r.newCmd()
+}
+
+func viewCmd() *cobra.Command {
+	r := res[apiclient.View]("view", "Views", true, "/views", []output.Column{
+		col[apiclient.View]("ID", func(v apiclient.View) int { return v.ID }),
+		col[apiclient.View]("TITLE", func(v apiclient.View) string { return v.Title }),
+		col[apiclient.View]("POSITION", func(v apiclient.View) int { return v.Position }),
+	}, func(v apiclient.View) string { return v.Title }, func(v apiclient.View) int { return v.ID })
+	r.nameKey = "title"
+	return r.newCmd()
+}
+
+func userCmd() *cobra.Command {
+	r := res[apiclient.User]("user", "Users (admin only)", false, "/users", []output.Column{
+		col[apiclient.User]("ID", func(u apiclient.User) int { return u.ID }),
+		col[apiclient.User]("USERNAME", func(u apiclient.User) string { return u.Username }),
+		col[apiclient.User]("NAME", func(u apiclient.User) string { return u.Name }),
+		col[apiclient.User]("EMAIL", func(u apiclient.User) string { return u.Email }),
+		col[apiclient.User]("ADMIN", func(u apiclient.User) bool { return u.Admin }),
+	}, func(u apiclient.User) string { return u.Username }, func(u apiclient.User) int { return u.ID })
+	r.nameKey = "username"
+	return r.newCmd()
+}
+
+// memberCmd is the member resource with a fixup for the role/roles
+// conflict: the API rejects a body that carries both.
+func memberCmd() *cobra.Command {
+	r := res[apiclient.Member]("member", "Project members", true, "/users", []output.Column{
+		col[apiclient.Member]("ID", func(m apiclient.Member) int { return m.ID }),
+		col[apiclient.Member]("USERNAME", func(m apiclient.Member) string { return m.Username }),
+		col[apiclient.Member]("NAME", func(m apiclient.Member) string { return m.Name }),
+		col[apiclient.Member]("ROLE", func(m apiclient.Member) string { return m.Role }),
+	}, func(m apiclient.Member) string { return m.Username }, func(m apiclient.Member) int { return m.ID })
+	r.nameKey = "username"
+	r.fixup = func(body, over map[string]any) {
+		if _, ok := over["roles"]; ok {
+			delete(body, "role")
+		}
+		if _, ok := over["role"]; ok {
+			delete(body, "roles")
+		}
+	}
+	return r.newCmd()
 }
