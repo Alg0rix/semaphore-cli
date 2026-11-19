@@ -41,6 +41,24 @@ type Template struct {
 	Autorun       bool   `json:"autorun" yaml:"autorun"`
 	StartVersion  string `json:"start_version" yaml:"start_version"`
 	BuildTemplate int    `json:"build_template_id" yaml:"build_template_id"`
+	SurveyVars    []SurveyVar    `json:"survey_vars" yaml:"survey_vars"`
+	TaskParams    map[string]any `json:"task_params" yaml:"task_params"`
+}
+
+type SurveyVar struct {
+	Name         string         `json:"name" yaml:"name"`
+	Title        string         `json:"title" yaml:"title"`
+	Description  string         `json:"description" yaml:"description"`
+	Type         string         `json:"type" yaml:"type"` // "", int, enum, select, secret, text
+	Target       string         `json:"target" yaml:"target"` // "" (extra var/arg) or "env"
+	Required     bool           `json:"required" yaml:"required"`
+	DefaultValue any            `json:"default_value" yaml:"default_value"`
+	Values       []SurveyVarVal `json:"values" yaml:"values"`
+}
+
+type SurveyVarVal struct {
+	Name  string `json:"name" yaml:"name"`
+	Value string `json:"value" yaml:"value"`
 }
 
 type Task struct {
@@ -61,6 +79,7 @@ type Task struct {
 	Version    string     `json:"version" yaml:"version"`
 	CommitHash string     `json:"commit_hash" yaml:"commit_hash"`
 	BuildTask  *Task      `json:"build_task" yaml:"build_task"`
+	Params     map[string]any `json:"params" yaml:"params"`
 }
 
 type TaskOutput struct {
@@ -83,6 +102,12 @@ type TaskRequest struct {
 	Message      string `json:"message,omitempty"`
 	Arguments    string `json:"arguments,omitempty"`
 	InventoryID  int    `json:"inventory_id,omitempty"`
+	// Params carries app-specific task params (Ansible tags/limit/skip_tags,
+	// Terraform plan/destroy/auto_approve, …).
+	Params map[string]any `json:"params,omitempty"`
+	// Secret carries survey-variable answers of type "secret" as a JSON
+	// object; stored separately so the server can mask them.
+	Secret string `json:"secret,omitempty"`
 }
 
 type Inventory struct {

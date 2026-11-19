@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"context"
 	"errors"
 	"fmt"
@@ -60,6 +61,9 @@ type taskRunArg struct {
 	Branch    string `json:"branch,omitempty" jsonschema:"override git branch"`
 	Message   string `json:"message,omitempty" jsonschema:"task message"`
 	Args      string `json:"args,omitempty" jsonschema:"extra CLI args as JSON array string"`
+	Params    string `json:"params,omitempty" jsonschema:"task params as a JSON object string (app-specific: ansible tags/limit/skip_tags, terraform plan/destroy)"`
+	Env       string `json:"environment,omitempty" jsonschema:"extra environment/extra-vars as a JSON object string (non-secret survey answers)"`
+	Secret    string `json:"secret,omitempty" jsonschema:"survey secret answers as a JSON object string"`
 	DryRun    bool   `json:"dry_run,omitempty"`
 	Wait      bool   `json:"wait,omitempty" jsonschema:"block until the task finishes and return the final task"`
 	TimeoutMs int    `json:"timeout_ms,omitempty" jsonschema:"max wait milliseconds when wait is set (0 = no limit)"`
@@ -293,7 +297,16 @@ func registerMcpTools(srv *mcp.Server, r *runtime) {
 			GitBranch:    in.Branch,
 			Message:      in.Message,
 			Arguments:    in.Args,
+			Environment:  in.Env,
+			Secret:       in.Secret,
 			DryRun:       in.DryRun,
+		}
+		if in.Params != "" {
+			var p map[string]any
+			if err := json.Unmarshal([]byte(in.Params), &p); err != nil {
+				return mcpErr(fmt.Errorf("invalid params JSON: %s", err)), mcpTask{}, nil
+			}
+			req.Params = p
 		}
 		if id, err := strconv.Atoi(in.Template); err == nil {
 			req.TemplateID = id

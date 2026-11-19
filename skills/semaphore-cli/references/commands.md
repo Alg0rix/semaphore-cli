@@ -48,6 +48,9 @@ Global flags on every command: `--url`, `--token`, `--context`,
 --branch BRANCH  override git branch
 --message TEXT   task message
 --args 'JSON'    extra CLI arguments as a JSON array string
+--params 'JSON'  task params object (ansible tags/limit/skip_tags, terraform plan/destroy/…)
+--environment 'JSON'  extra env/extra-vars object; carries non-secret survey answers
+--secret 'JSON'  survey answers of type `secret` as an object; masked by the server
 --dry-run        ansible --check
 --diff           ansible --diff
 --debug-task     verbose ansible output

@@ -109,3 +109,24 @@ parse it for `status`, `end`, and `version`/`commit_hash`, then call
 `task logs -o json` for the failure lines. Report the exit code to the
 caller; it distinguishes failure (`3`), operator stop (`6`), and your own
 timeout (`124`).
+
+## Survey variables and task params
+
+Templates can declare `survey_vars` (see `template get -o json`). Each var has
+`name`, `type` (`""`, `int`, `enum`, `select`, `secret`, `text`), `target`
+(`""` = app args/extra vars, `env` = process env), and `required`. Pass
+answers at run time:
+
+```bash
+semaphore-cli task run deploy -p prod \
+  --environment '{"region":"eu","replicas":3}' \
+  --secret '{"api_key":"s3cr3t"}' --wait
+```
+
+- `--environment` — non-secret survey answers and extra vars, merged into the
+  template environment. Vars with `target:"env"` are exported as process env.
+- `--secret` — answers for `type:"secret"` vars only. Sent in the task's
+  `secret` field so the server masks them; never echoed in `task get` output.
+- `--params` — app-specific task params (the task `params` map): ansible
+  `tags`/`skip_tags`/`limit`/`debug_level`, terraform `plan`/`destroy`/
+  `auto_approve`, etc. Returned verbatim by `task get`/`task run` JSON.

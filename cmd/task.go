@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -92,16 +93,19 @@ func waitTask(cmd *cobra.Command, pid, taskID int, follow bool, timeout time.Dur
 }
 
 type runFlags struct {
-	follow    bool
-	wait      bool
-	dryRun    bool
-	diff      bool
-	debug     bool
-	limit     string
-	branch    string
-	message   string
-	arguments string
-	timeout   time.Duration
+	follow      bool
+	wait        bool
+	dryRun      bool
+	diff        bool
+	debug       bool
+	limit       string
+	branch      string
+	message     string
+	arguments   string
+	params      string
+	secret      string
+	environment string
+	timeout     time.Duration
 }
 
 func (f *runFlags) bind(cmd *cobra.Command) {
@@ -115,6 +119,9 @@ func (f *runFlags) bind(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.branch, "branch", "", "override git branch")
 	cmd.Flags().StringVar(&f.message, "message", "", "task message")
 	cmd.Flags().StringVar(&f.arguments, "args", "", "extra CLI arguments (JSON array string)")
+	cmd.Flags().StringVar(&f.params, "params", "", "task params as a JSON object (app-specific: ansible tags/limit/skip_tags, terraform plan/destroy/…)")
+	cmd.Flags().StringVar(&f.environment, "environment", "", "extra environment/extra-vars as a JSON object (non-secret survey answers)")
+	cmd.Flags().StringVar(&f.secret, "secret", "", "survey 'secret' answers as a JSON object (kept out of logs)")
 }
 
 func runTask(cmd *cobra.Command, pid int, req apiclient.TaskRequest, f *runFlags) error {
@@ -125,6 +132,15 @@ func runTask(cmd *cobra.Command, pid int, req apiclient.TaskRequest, f *runFlags
 	req.GitBranch = f.branch
 	req.Message = f.message
 	req.Arguments = f.arguments
+	req.Environment = f.environment
+	req.Secret = f.secret
+	if f.params != "" {
+		var p map[string]any
+		if err := json.Unmarshal([]byte(f.params), &p); err != nil {
+			return exit(exitUsage, fmt.Errorf("invalid --params JSON: %s", err))
+		}
+		req.Params = p
+	}
 
 	var task apiclient.Task
 	if err := rt(cmd).api.Post(fmt.Sprintf("/project/%d/tasks", pid), req, &task); err != nil {

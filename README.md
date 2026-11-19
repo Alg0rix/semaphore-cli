@@ -125,6 +125,7 @@ flags you pass, and sends the result — unchanged fields keep their values.
 semaphore-cli task run <id|name> -p <project> \
     [--follow] [--wait] [--timeout 5m] \
     [--limit HOSTS] [--branch BRANCH] [--message TEXT] [--args '["-x"]'] \
+    [--params '{"tags":["a"]}'] [--environment '{"k":"v"}'] [--secret '{"k":"v"}'] \
     [--dry-run] [--diff] [--debug-task]
 ```
 
