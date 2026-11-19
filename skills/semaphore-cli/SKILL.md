@@ -1,62 +1,55 @@
 ---
 name: semaphore-cli
-description: Use the semaphore-cli binary to run and monitor Semaphore UI (Ansible Semaphore) tasks over its REST API. Use for triggering template runs, watching task status and logs, and listing projects, templates, inventories, environments, schedules, keys, repositories, views, members, users and runners with JSON output.
+description: Use the semaphore-cli binary to run, watch, and inspect Semaphore UI (Ansible Semaphore) tasks over its REST API. Use for triggering template runs, waiting on task results, reading task logs, and listing projects, templates, inventories, environments, schedules, keys, repositories, views, members, users and runners — including through its built-in MCP server.
 ---
 
 # semaphore-cli
 
-Use `semaphore-cli` for Semaphore UI API work. Build it with
-`go build -buildvcs=false -o semaphore-cli .` if the binary is missing.
-Do not confuse it with `semaphore`, the server admin binary.
+Use `semaphore-cli` for Semaphore UI API work. It is a REST client; it does
+not need the server config or database. Do not confuse it with the
+`semaphore` server binary. Build it with `go build -o semaphore-cli .` from
+the repo, or install a release binary if it is missing.
 
-## Authentication
+Three rules govern every call:
 
-Resolution order: flag > `SEMAPHORE_CLI_*` env > saved context.
+- Structured results go to stdout, diagnostics and prompts to stderr.
+  `-o json|yaml` is always clean to parse; `-q` prints ids only.
+- The exit code reports the outcome: 0 ok, 3 task failed, 4 auth, 5 not
+  found, 6 stopped, 124 wait timeout. Check it before parsing.
+- A finished task prints its final JSON object to stdout even on failure —
+  check the code first, then parse stdout for the details.
 
-- Saved login: `semaphore-cli auth login --url https://host --user alice`
-  (prompts for password, mints an API token) or pipe a token with
-  `--with-token`. Contexts live in `~/.semaphore-cli/config.yaml`.
-- Agent/CI: set `SEMAPHORE_CLI_URL` and `SEMAPHORE_CLI_TOKEN` (User
-  Settings > API Tokens), or pass `--url`/`--token` per call.
-- `semaphore-cli context set NAME -p PROJECT` saves a default project;
-  `-p` accepts an id or a name. `context use NAME` switches.
+## Load the relevant reference
 
-## Agent workflow
+| Task | Reference |
+| --- | --- |
+| Login, contexts, env vars, CI credentials, TLS | [auth](references/auth.md) |
+| Full command list, flags, output formats, exit codes | [commands](references/commands.md) |
+| Triggering runs, waiting, logs, agent run loops, recipes | [tasks](references/tasks.md) |
+| MCP server mode, client config, tool reference | [mcp](references/mcp.md) |
 
-Every command accepts `-o json|yaml` (stdout is always clean machine
-readable output; messages go to stderr), `--fields a,b`, `-q` (ids only).
+## Core workflow
 
-1. `semaphore-cli info` / `auth status` to check connectivity and identity.
-2. `project list`, `template list -p <project>` to discover targets.
-3. Trigger a run and wait for the result in one call:
+1. Authenticate once: `semaphore-cli auth login --url URL --user NAME`, or
+   set `SEMAPHORE_CLI_URL`/`SEMAPHORE_CLI_TOKEN`. Check with `info` and
+   `auth status`.
+2. Pick the project: `-p` accepts an id or a name. Save it in the context
+   with `context set NAME -p PROJECT` to stop passing `-p`.
+3. Trigger and collect the result in one call:
 
    ```bash
-   semaphore-cli task run <template id|name> -p <project> --wait -o json
+   semaphore-cli task run TEMPLATE -p PROJECT --wait -o json
    ```
 
-   `task run` resolves names server-side; `template run` resolves them
-   client-side first and gives a cleaner not-found error. Flags:
-   `--follow`, `--limit`, `--branch`, `--message`, `--args`, `--dry-run`,
-   `--diff`, `--debug-task`, `--timeout`.
+4. Or split it: `TID=$(semaphore-cli task run T -p P -q)`, then
+   `task wait $TID -p P -o json`, then `task logs $TID -p P -o json`.
 
-4. Or split it: `TID=$(semaphore-cli task run T -p P -q)` then
-   `semaphore-cli task wait $TID -p P -o json` — the final Task object
-   (status, start/end, commit_hash) prints when the task ends.
-5. `task logs $TID -p P` prints plain lines; `-o json` returns the
-   timestamped output array. `logs -f` streams.
-6. `task stop`, `task confirm`, `task reject`, `task rerun`,
-   `task delete -y` manage lifecycle.
+## Gotchas
 
-## Exit codes (check before parsing)
-
-0 ok, 1 error, 2 usage, 3 task failed, 4 auth failed, 5 not found,
-6 task stopped, 124 wait timeout. A failed wait still prints the final
-task JSON to stdout — parse it before reporting.
-
-## MCP mode
-
-`semaphore-cli mcp` serves the same operations as MCP tools over stdio
-(info, whoami, project_list, template_list, task_run, task_wait, task_list,
-task_get, task_logs, task_stop, task_confirm, task_reject, resource_list).
-Register it with an MCP client, passing `SEMAPHORE_CLI_URL` and
-`SEMAPHORE_CLI_TOKEN` in the environment.
+- `task run` resolves names server-side; `template run` resolves them
+  client-side first and reports a cleaner `not found` for typos.
+- `task logs` plain output is line-oriented; `-o json` returns the
+  timestamped `TaskOutput` array.
+- Mutations that prompt (`task delete`) need `-y` in non-interactive runs.
+- `task confirm`/`reject` only act on tasks paused for confirmation; on a
+  finished task the server returns 400, which is expected.
