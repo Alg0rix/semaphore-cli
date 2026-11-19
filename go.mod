@@ -1,4 +1,4 @@
-module semaphore-cli
+module github.com/Alg0rix/semaphore-cli
 
 go 1.27.2
 

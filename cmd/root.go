@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"semaphore-cli/internal/apiclient"
-	"semaphore-cli/internal/config"
-	"semaphore-cli/internal/output"
+	"github.com/Alg0rix/semaphore-cli/internal/apiclient"
+	"github.com/Alg0rix/semaphore-cli/internal/config"
+	"github.com/Alg0rix/semaphore-cli/internal/output"
 
 	"github.com/spf13/cobra"
 )

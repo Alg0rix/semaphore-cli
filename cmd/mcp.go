@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"semaphore-cli/internal/apiclient"
+	"github.com/Alg0rix/semaphore-cli/internal/apiclient"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"

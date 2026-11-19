@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"semaphore-cli/internal/apiclient"
-	"semaphore-cli/internal/output"
+	"github.com/Alg0rix/semaphore-cli/internal/apiclient"
+	"github.com/Alg0rix/semaphore-cli/internal/output"
 
 	"github.com/spf13/cobra"
 )

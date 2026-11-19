@@ -3,7 +3,7 @@ package main
 import (
 	"embed"
 
-	"semaphore-cli/cmd"
+	"github.com/Alg0rix/semaphore-cli/cmd"
 )
 
 //go:embed skills

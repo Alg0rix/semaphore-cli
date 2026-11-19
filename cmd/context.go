@@ -5,8 +5,8 @@ import (
 	"os"
 	"sort"
 
-	"semaphore-cli/internal/config"
-	"semaphore-cli/internal/output"
+	"github.com/Alg0rix/semaphore-cli/internal/config"
+	"github.com/Alg0rix/semaphore-cli/internal/output"
 
 	"github.com/spf13/cobra"
 )
