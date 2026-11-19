@@ -1,0 +1,45 @@
+version: 2
+
+project_name: semaphore-cli
+
+builds:
+  - binary: semaphore-cli
+    main: .
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: Alg0rix
+    name: semaphore-cli
+  footer: |
+    Install with:
+
+    ```sh
+    curl -fsSL https://raw.githubusercontent.com/Alg0rix/semaphore-cli/main/install.sh | sh
+    ```
+
+changelog:
+  use: github-native

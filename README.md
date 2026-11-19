@@ -27,15 +27,21 @@ codes, so scripts and agents can react to outcomes directly.
 
 ## Install
 
-Build from source (Go 1.21 or later):
+Install the latest release binary (Linux and macOS):
 
 ```bash
-git clone https://github.com/Alg0rix/semaphore-cli
-cd semaphore-cli
-go build -o semaphore-cli .
+curl -fsSL https://raw.githubusercontent.com/Alg0rix/semaphore-cli/main/install.sh | sh
 ```
 
-Or install directly:
+The script detects the platform, verifies the release checksum, and installs
+into `/usr/local/bin` or `~/.local/bin`. Options: `-b DIR` sets the install
+directory, and a version argument pins a release (`sh install.sh -b ~/.local/bin v0.1.0`).
+
+Or download an archive directly from
+[Releases](https://github.com/Alg0rix/semaphore-cli/releases) — Linux,
+macOS, and Windows builds are published for amd64 and arm64.
+
+Or install from source with Go:
 
 ```bash
 go install github.com/Alg0rix/semaphore-cli@latest
